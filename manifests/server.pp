@@ -21,10 +21,18 @@ class mysql::server (
   $service_provider = $mysql::params::service_provider,
   $config_hash      = {},
   $enabled          = true,
+  $replication      = undef,
+  $logbin           = 'mysql-bin',
+  $server_id        = undef,
   $manage_service   = true
 ) inherits mysql::params {
 
   Class['mysql::server'] -> Class['mysql::config']
+
+  if $replication {
+    validate_re($replication, '^(master|slave)$',
+    validate_re($server_id, '^\d+$',
+  }
 
   $config_class = { 'mysql::config' => $config_hash }
 
@@ -33,6 +41,31 @@ class mysql::server (
   package { 'mysql-server':
     ensure => $package_ensure,
     name   => $package_name,
+  }
+
+  case $replication {
+    'master': {
+      validate_string($logbin)
+      mysql::server::config { 'master_replication':
+        settings => {
+          'mysqld' => {
+            'log-bin' => $logbin,
+            'server-id' => $server_id,
+          }
+        },
+        notify_service => true,
+      }
+    }
+    'slave': {
+      mysql::server::config { 'slave_replication':
+        settings => {
+          'mysqld' => {
+            'server-id' => $server_id,
+          }
+        },
+        notify_service => true,
+      }
+    }
   }
 
   if $enabled {
