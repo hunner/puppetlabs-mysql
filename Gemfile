@@ -11,6 +11,7 @@ group :development, :test do
   gem 'pry',                     :require => false
   gem 'simplecov',               :require => false
   gem 'mime-types', '<2.0',      :require => false
+  gem 'puppet_facts',            :require => false, :path => '~/Documents/work/git/puppet_facts'
 end
 
 if facterversion = ENV['FACTER_GEM_VERSION']
