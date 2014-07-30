@@ -2,6 +2,9 @@
 Puppet::Type.newtype(:mysql_user) do
   @doc = 'Manage a MySQL user. This includes management of users password as well as privileges.'
 
+  feature :long_usernames,
+          "The provider supports usernames > 16 bytes."
+
   ensurable
 
   newparam(:name, :namevar => true) do
@@ -11,8 +14,8 @@ Puppet::Type.newtype(:mysql_user) do
       # Regex should problably be more like this: /^[`'"]?[^`'"]*[`'"]?@[`'"]?[\w%\.]+[`'"]?$/
       raise(ArgumentError, "Invalid database user #{value}") unless value =~ /[\w-]*@[\w%\.:]+/
       username = value.split('@')[0]
-      if username.size > 16
-        raise ArgumentError, 'MySQL usernames are limited to a maximum of 16 characters'
+      if username.size > 16 and provider and not provider.class.long_usernames?
+        raise ArgumentError, "#{provider.class.name} usernames are limited to a maximum of 16 characters"
       end
     end
 
