@@ -16,7 +16,7 @@ class Puppet::Provider::Mysql < Puppet::Provider
       # =#> mysql  Ver 15.1 Distrib 10.0.12-MariaDB, for debian-linux-gnu (x86_64) using readline 5.1
 
       product_version = mysql('--version').split[4].chop
-    rescue Puppet::ExecutionFailure
+    rescue Puppet::ExecutionFailure, Puppet::Error
       false
     else
       true if Puppet::Util::Package.versioncmp(product_version, version) >= 0

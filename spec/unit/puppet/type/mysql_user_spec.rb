@@ -1,36 +1,51 @@
 require 'puppet'
 require 'puppet/type/mysql_user'
+
+provider_class = Puppet::Type.type(:mysql_user).provider(:mariadb)
+
 describe Puppet::Type.type(:mysql_user) do
-
-  it 'should require a name' do
-    expect {
-      Puppet::Type.type(:mysql_user).new({})
-    }.to raise_error(Puppet::Error, 'Title or name must be provided')
+  let(:resource) do
+    user = described_class.new(:name => "#{username}@LocalHost", :password_hash => 'pass')
+    # validation happens before a provider is set. How can we trigger validation?
+    user.provider = provider_class.new(user)
+    described_class.new(user)
+  end
+  before :each do
+    Puppet::Util.stubs(:which).with('mysql').returns('/usr/bin/mysql')
   end
 
-  context 'using 12345678901234567@localhost' do
-    before :each do
-      @user = Puppet::Type.type(:mysql_user).new(:name => '12345678901234567@localhost', :password_hash => 'pass')
+  describe '#name' do
+    context 'mariadb provider' do
+      before :each do
+        provider_class.stubs(:version_check).with("10.0.0-MariaDB").returns(true)
+      end
+
+      context 'using long user names' do
+        let(:username) { 'eighteencharacters' }
+        it 'should accept a user name' do
+          resource[:name].should == 'eighteencharacters@localhost'
+        end
+      end
     end
 
-    it 'should accept a user name' do
-      @user[:name].should == '12345678901234567@localhost'
-    end
+    context 'mysql provider' do
+      before :each do
+        provider_class.stubs(:version_check).with("10.0.0-MariaDB").returns(false)
+      end
 
-    it 'should accept a password' do
-      @user[:password_hash] = 'foo'
-      @user[:password_hash].should == 'foo'
-    end
-  end
+      context 'using long user names' do
+        let(:username) { 'eighteencharacters' }
+        it 'should reject a long user name' do
+          expect { resource[:name] }.to raise_error Puppet::Error
+        end
+      end
 
-  context 'using foo@LocalHost' do
-    before :each do
-      @user = Puppet::Type.type(:mysql_user).new(:name => 'foo@LocalHost', :password_hash => 'pass')
+      context 'using short user names' do
+        let(:username) { 'sixteencharacter' }
+        it 'should accept a short user name lowercased' do
+          resource[:name].should == 'sixteencharacter@localhost'
+        end
+      end
     end
-
-    it 'should lowercase the user name' do
-      @user[:name].should == 'foo@localhost'
-    end
-
   end
 end
