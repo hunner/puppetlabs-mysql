@@ -1,16 +1,35 @@
-# Puppet provider for mysql
+require 'puppet/feature/mysql_commands_exist'
+
 class Puppet::Provider::Mysql < Puppet::Provider
   # Without initvars commands won't work.
   initvars
 
-  # Make sure we find mysql commands on CentOS and FreeBSD
-  ENV['PATH'] = ENV['PATH'] + ':/usr/libexec:/usr/local/libexec:/usr/local/bin'
+  confine feature: :mysql_exists
 
   # rubocop:disable Style/HashSyntax
   commands :mysql_raw  => 'mysql'
   commands :mysqld     => 'mysqld'
   commands :mysqladmin => 'mysqladmin'
   # rubocop:enable Style/HashSyntax
+
+  # Used by the feature for confine
+  def self.mysql_command_exists?(command)
+    paths = Dir.glob([
+      '/usr/libexec',
+      '/usr/local/libexec',
+      '/usr/local/bin',
+      '/usr/share/mysql/scripts',
+      '/opt/rh/*{mariadb,mysql}*/root/usr/bin',
+      '/opt/rh/*{mariadb,mysql}*/root/usr/libexec',
+      '/usr/mysql/*/bin',
+    ].collect { |p| "#{p}/#{command}" })
+    if paths.empty?
+      false
+    else
+      ENV['PATH'] = "#{ENV['PATH']}:#{paths.map { |d| File.dirname(d) }.join(':')}"
+      true
+    end
+  end
 
   # Optional defaults file
   def self.defaults_file

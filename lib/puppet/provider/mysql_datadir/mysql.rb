@@ -2,13 +2,10 @@ require File.expand_path(File.join(File.dirname(__FILE__), '..', 'mysql'))
 Puppet::Type.type(:mysql_datadir).provide(:mysql, parent: Puppet::Provider::Mysql) do
   desc 'manage data directories for mysql instances'
 
-  initvars
-
-  # Make sure we find mysqld on CentOS and mysql_install_db on Gentoo and Solaris 11
-  ENV['PATH'] = ENV['PATH'] + ':/usr/libexec:/usr/share/mysql/scripts:/opt/rh/mysql55/root/usr/bin:/opt/rh/mysql55/root/usr/libexec:/usr/mysql/5.5/bin:/usr/mysql/5.6/bin:/usr/mysql/5.7/bin'
-
-  commands mysqld: 'mysqld'
+  confine feature: :mysql_exists
+  confine feature: :mysqld_exists
   optional_commands mysql_install_db: 'mysql_install_db'
+
   # rubocop:disable Lint/UselessAssignment
   def create
     name                     = @resource[:name]
